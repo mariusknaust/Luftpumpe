@@ -107,6 +107,8 @@ The protocol is ambiguous about the scaling of the temperatures ("Accuracy 0.1" 
 
 Publishing never delays reading the heat pump, states are skipped while the broker can't be reached and the connection is established again.
 
+[docs/raspberry-pi-monitoring.md](docs/raspberry-pi-monitoring.md) adds the Luftpumpe to the monitoring setup of the [Ladekaskade](https://github.com/mariusknaust/Ladekaskade/blob/main/docs/raspberry-pi-monitoring.md) on a Raspberry Pi (Mosquitto, VictoriaMetrics and a small bridge between both).
+
 ## Commissioning
 
 Different firmware versions of the main board use different register maps. Before relying on the values, compare them once with the display: The `mode`, `p03` and `p05` with the mode and the parameters (SETTING, SYSTEM PARAMETERS), the temperatures and the other status values with the status list (SETTING, STATUS). If they don't match, the register map of `core/src/registers.rs` has to be adapted to the protocol of the installed firmware.
