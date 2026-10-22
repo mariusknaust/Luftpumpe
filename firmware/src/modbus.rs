@@ -14,6 +14,12 @@ const SEND_TIMEOUT: embassy_time::Duration = embassy_time::Duration::from_millis
 /// Pause between two requests
 const REQUEST_PAUSE: embassy_time::Duration = embassy_time::Duration::from_millis(luftpumpe_core::modbus::REQUEST_PAUSE);
 
+/// Held while reading the heat pump and while saving the settings: Erasing the flash stalls the
+/// executor, which mustn't happen while the driver is enabled (it would keep driving the bus into the
+/// response) or while a response is received (it would overflow the receive FIFO)
+pub(crate) static LOCK: embassy_sync::mutex::Mutex<embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex, ()>
+	= embassy_sync::mutex::Mutex::new(());
+
 /// The UART to the transceiver and the pin enabling its driver
 pub(crate) struct Bus
 {
@@ -33,6 +39,7 @@ impl Bus
 	/// Reads all blocks of registers
 	pub(crate) async fn read(&mut self) -> Result<Readings, Error>
 	{
+		let _lock = LOCK.lock().await;
 		let mut blocks: [Registers; BLOCKS.len()] = Default::default();
 
 		for (index, block) in BLOCKS.iter().enumerate()

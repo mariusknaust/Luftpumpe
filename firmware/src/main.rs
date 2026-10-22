@@ -7,6 +7,8 @@ use defmt_rtt as _;
 use esp_backtrace as _;
 
 mod modbus;
+mod network;
+mod settings;
 
 esp_bootloader_esp_idf::esp_app_desc!();
 
@@ -24,7 +26,7 @@ const WATCHDOG_TIMEOUT: hal::time::Duration =
 
 /// Main task: Handles the initialization of the peripherals and reads the heat pump in every cycle
 #[esp_rtos::main]
-async fn main(_spawner: embassy_executor::Spawner)
+async fn main(spawner: embassy_executor::Spawner)
 {
 	let config = hal::Config::default();
 	let peripherals = hal::init(config);
@@ -39,6 +41,9 @@ async fn main(_spawner: embassy_executor::Spawner)
 	let timg0 = hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
 
 	esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
+
+	let settings = settings::initialize(spawner, peripherals.USB_DEVICE, peripherals.FLASH);
+	network::initialize(spawner, peripherals.WIFI, &settings);
 
 	// The LED indicates that the heat pump replies
 	let mut led = hal::gpio::Output::new(
