@@ -1,6 +1,6 @@
 # Agent guidelines
 
-Luftpumpe reads the registers of an air-to-water heat pump (Schönknecht & Busch SB-WP-32-8, a rebadged Power World PW030-DKZLRS-A with the main board CC1010B) via the free RS485 port of its main board (Modbus RTU).
+Luftpumpe reads the registers of an air-to-water heat pump (Schönknecht & Busch SB-WP-32-8, a rebadged Power World PW030-DKZLRS-A with the main board CC1010B) via the free RS485 port of its main board (Modbus RTU). See README.md for the behavior.
 
 ## Priorities
 
@@ -16,12 +16,20 @@ Luftpumpe reads the registers of an air-to-water heat pump (Schönknecht & Busch
 - Follow the protocol of the main board (PW58321): 9600 Baud 8N1, unit address 1, at most 120 registers per request, more than 200 ms between requests.
 - Writing registers (e.g. a better heating curve later on) needs a separate, deliberate change: The main board saves every written register to its flash (which wears out), so only an allowlist of registers with their ranges may ever be written, only on a change and rarely (never in every cycle). Factory reset (0x03E8), forced defrost (0x7FFE) and the expert parameters (A, B, D, R) must never be written.
 
+## Structure
+
+- `core/`: Chip independent logic (`no_std`, host-testable), everything that can be tested on the host belongs here (the protocol and the data, later on the decisions, e.g. which registers may be written):
+  - `modbus.rs`: Modbus RTU framing: The read request, collecting and checking the response, the errors and the timing of the bus (checked against the limits of the main board at compile time).
+
 ## Workflow
 
+- `cargo test` and `cargo clippy --all-targets -- -D warnings` in the root: Host tests of `core`.
+- The crates shared with the Ladekaskade and the Thermokaskade are locked to the same versions (`Cargo.lock`), upgrade the projects together.
+- Add tests in `core` for every behavior change.
 - Keep commits focused and building.
 
 ## Style
 
-- Formatting is manual: Tabs, braces on the next line, as in the Ladekaskade and the Thermokaskade.
+- Formatting is manual (`rustfmt.toml` disables rustfmt): Tabs, braces on the next line, see the existing code.
 - Comments explain why, doc comments on all items, short and in the existing tone.
 - Log with defmt, user facing errors are `&'static str` messages (`Error::message`).
