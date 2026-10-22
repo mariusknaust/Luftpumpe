@@ -7,6 +7,7 @@ use defmt_rtt as _;
 use esp_backtrace as _;
 
 mod modbus;
+mod mqtt;
 mod network;
 mod settings;
 
@@ -43,7 +44,8 @@ async fn main(spawner: embassy_executor::Spawner)
 	esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
 	let settings = settings::initialize(spawner, peripherals.USB_DEVICE, peripherals.FLASH);
-	network::initialize(spawner, peripherals.WIFI, &settings);
+	let network = network::initialize(spawner, peripherals.WIFI, &settings);
+	mqtt::initialize(spawner, network, &settings);
 
 	// The LED indicates that the heat pump replies
 	let mut led = hal::gpio::Output::new(
@@ -86,6 +88,11 @@ async fn main(spawner: embassy_executor::Spawner)
 				warn!("Could not read the heat pump: {}", error.message());
 				led.set_high();
 			},
+		}
+
+		if let Ok(state) = luftpumpe_core::mqtt::state(readings.as_ref().map_err(luftpumpe_core::modbus::Error::message))
+		{
+			mqtt::STATE.signal(state);
 		}
 
 		ticker.next().await;
