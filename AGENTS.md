@@ -20,6 +20,7 @@ Luftpumpe reads the registers of an air-to-water heat pump (Schönknecht & Busch
 
 - `core/`: Chip independent logic (`no_std`, host-testable), everything that can be tested on the host belongs here (the protocol and the data, later on the decisions, e.g. which registers may be written):
   - `modbus.rs`: Modbus RTU framing: The read request, collecting and checking the response, the errors and the timing of the bus (checked against the limits of the main board at compile time).
+  - `registers.rs`: The register map: The blocks read in every cycle and the published fields (raw values, the scaling of the temperatures is applied by the receiver).
 
 ## Workflow
 
