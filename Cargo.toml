@@ -1,5 +1,7 @@
 [workspace]
-members = ["core"]
+members = ["core", "firmware"]
+# The firmware is built from within its directory, to pick up the target configuration
+default-members = ["core"]
 resolver = "3"
 
 [profile.dev]

@@ -1,0 +1,12 @@
+[target.'cfg(all(target_arch = "riscv32", target_os = "none"))']
+runner = "probe-rs run --chip esp32c3 --idf-partition-table partitions.csv"
+rustflags = [
+	# Required by esp-backtrace for proper backtraces
+	"-C", "force-frame-pointers",
+]
+
+[build]
+target = "riscv32imc-unknown-none-elf"
+
+[env]
+DEFMT_LOG = "debug"
