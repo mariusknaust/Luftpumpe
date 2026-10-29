@@ -9,12 +9,20 @@ luftpumpe-core = { path = "../core", features = ["defmt"] }
 
 esp-bootloader-esp-idf = { version = "0.6", features = ["esp32c3", "defmt"] }
 esp-hal = { version = "1.2", features = ["esp32c3", "defmt", "unstable"] }
-esp-rtos = { version = "0.4", features = ["embassy", "esp32c3", "defmt"] }
+esp-rtos = { version = "0.4", features = ["embassy", "esp-radio", "esp32c3", "defmt"] }
 esp-backtrace = { version = "0.20", features = ["esp32c3", "defmt", "panic-handler", "custom-halt"] }
+esp-storage = { version = "0.10", features = ["esp32c3", "defmt"] }
+esp-radio = { version = "=1.0.0-beta.1", features = ["esp32c3", "wifi", "defmt"] }
+esp-alloc = { version = "0.11", features = ["esp32c3", "defmt"] }
 
+embassy-sync = { version = "0.8", features = ["defmt"] }
 embassy-executor = { version = "0.10", features = ["defmt"] }
 embassy-time = { version = "0.5", features = ["defmt", "defmt-timestamp-uptime"] }
+embassy-net = { version = "0.9", features = ["defmt", "dhcpv4", "dns", "medium-ethernet", "proto-ipv4", "tcp"] }
 
 defmt = "1.0"
 # Never blocks, also when a debugger stops reading the logs without resetting the mode
 defmt-rtt = { version = "1.3", features = ["disable-blocking-mode"] }
+
+embedded-io-async = "0.7"
+static_cell = "2"

@@ -60,9 +60,30 @@ cargo run --release
 
 Alternatively the firmware can be flashed with [`cargo-espflash`](https://github.com/esp-rs/espflash) (installed with `cargo install cargo-espflash`, run `cargo espflash flash --release --partition-table partitions.csv` in `firmware`), but the logs are only available via probe-rs, as they are transferred via RTT. The custom partition table reserves a `settings` partition for the configuration, so it is required to flash with it. The logs of a running Luftpumpe are shown without flashing by `probe-rs attach --chip esp32c3 ../target/riscv32imc-unknown-none-elf/release/luftpumpe` (in `firmware`).
 
+## Configuration
+
+Connect to the USB serial interface (e.g. `picocom --echo /dev/ttyACM0`) and enter a setting as `name=value`, terminated by Enter. The settings are persisted to the flash and take effect after a restart (press the reset button or reconnect the power, the console has to be reconnected afterwards). Entering only the name of a setting (e.g. `wifi_ssid`) shows its saved value as `name=value` (also the password, in plain text).
+
+| Setting | Value |
+| - | - |
+| `wifi_ssid` | The Wi-Fi network to connect to (2.4 GHz, WPA/WPA2 or open), Wi-Fi is disabled without one |
+| `wifi_password` | The password of the Wi-Fi network (8 to 64 characters), empty for an open network |
+
+```text
+wifi_ssid=My Network
+wifi_password=my secret
+```
+
+Spaces are part of the `wifi_ssid` and `wifi_password` values (also after the `=`). The password is stored unencrypted in the flash. The Luftpumpe gets its address via DHCP and reconnects after the network was lost.
+
+The console has no prompt, every non-empty line is answered (with a confirmation or an error). It doesn't support line editing (e.g. backspace), enter a mistyped line again instead.
+
 ## Troubleshooting
 
 | Log message | Cause |
 | - | - |
 | `Could not read the heat pump: No reply from the heat pump` | Check the wiring (A and B swapped, GND, the transceiver's supply, `CN485` and not the display port) and that the heat pump is powered |
 | `Could not read the heat pump: Invalid checksum of the response` (or `Incomplete response`, `Unexpected response`, `Error receiving the response`) | The transmission is disturbed: Check the GND wire and use a twisted pair for A and B. Another device sending on the same port causes this as well |
+| `Could not connect to the Wi-Fi network` | Check the `wifi_ssid` and `wifi_password` settings (see [Configuration](#configuration)) and the signal strength (antenna) |
+| `Error loading settings: Invalid checksum of the stored settings` | Expected on the first start (nothing was saved yet), otherwise the stored settings are corrupted: Enter them again |
+| `No valid settings partition found` | The firmware was flashed without the custom partition table (`partitions.csv`) |
