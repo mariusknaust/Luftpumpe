@@ -3,6 +3,7 @@
 #![cfg_attr(not(test), no_std)]
 
 pub mod modbus;
+pub mod mqtt;
 pub mod registers;
 pub mod settings;
 

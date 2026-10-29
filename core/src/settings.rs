@@ -16,6 +16,13 @@ pub struct Settings
 	pub wifi_ssid: heapless::String<32>,
 	/// The password of the Wi-Fi network, empty for an open network
 	pub wifi_password: heapless::String<64>,
+	/// The host name or IPv4 address of the MQTT broker the state is published to, nothing is
+	/// published without one
+	pub mqtt_broker: heapless::String<64>,
+	/// The user name for the MQTT broker, no authentication without a user name
+	pub mqtt_user: heapless::String<32>,
+	/// The password for the MQTT broker (only used with a user name)
+	pub mqtt_password: heapless::String<64>,
 }
 
 /// The reply to a line handled by `Settings::handle`
@@ -61,6 +68,12 @@ impl Settings
 			},
 		}
 	}
+
+	/// The login for the MQTT broker (user name and password), none without a user name
+	pub fn mqtt_login(&self) -> Option<(&str, &str)>
+	{
+		(!self.mqtt_user.is_empty()).then_some((self.mqtt_user.as_str(), self.mqtt_password.as_str()))
+	}
 }
 
 /// A setting: Its name, and how it is changed from and shown as text
@@ -71,8 +84,8 @@ struct Setting
 	show: fn(&Settings, &mut Line) -> core::fmt::Result,
 }
 
-/// All settings (spaces are significant in the values)
-const SETTINGS: [Setting; 2] =
+/// All settings (spaces are significant in the values, apart from the broker)
+const SETTINGS: [Setting; 5] =
 	[
 		Setting
 		{
@@ -85,6 +98,24 @@ const SETTINGS: [Setting; 2] =
 			name: "wifi_password",
 			change: |settings, value| { settings.wifi_password = parse_password(value)?; Ok(()) },
 			show: |settings, line| line.write_str(&settings.wifi_password),
+		},
+		Setting
+		{
+			name: "broker",
+			change: |settings, value| { settings.mqtt_broker = value.trim().try_into().map_err(|_| "Broker too long")?; Ok(()) },
+			show: |settings, line| line.write_str(&settings.mqtt_broker),
+		},
+		Setting
+		{
+			name: "broker_user",
+			change: |settings, value| { settings.mqtt_user = value.try_into().map_err(|_| "Broker user name too long")?; Ok(()) },
+			show: |settings, line| line.write_str(&settings.mqtt_user),
+		},
+		Setting
+		{
+			name: "broker_password",
+			change: |settings, value| { settings.mqtt_password = value.try_into().map_err(|_| "Broker password too long")?; Ok(()) },
+			show: |settings, line| line.write_str(&settings.mqtt_password),
 		},
 	];
 
@@ -124,16 +155,48 @@ mod tests
 	}
 
 	#[test]
+	fn change_broker()
+	{
+		let mut settings = Settings::default();
+
+		assert_eq!(settings.handle("broker= 192.168.1.10 "), Ok(Reply::Changed));
+		assert_eq!(settings.mqtt_broker, "192.168.1.10");
+		assert_eq!(settings.handle(&format!("broker={}", "x".repeat(65))), Err("Broker too long"));
+	}
+
+	#[test]
+	fn change_broker_login()
+	{
+		let mut settings = Settings::default();
+
+		assert_eq!(settings.handle("broker_user=luftpumpe"), Ok(Reply::Changed));
+		assert_eq!(settings.handle("broker_password=a b=c"), Ok(Reply::Changed));
+		assert_eq!((settings.mqtt_user.as_str(), settings.mqtt_password.as_str()), ("luftpumpe", "a b=c"));
+
+		assert_eq!(settings.mqtt_login(), Some(("luftpumpe", "a b=c")));
+
+		assert_eq!(settings.handle(&format!("broker_user={}", "x".repeat(33))), Err("Broker user name too long"));
+		assert_eq!(settings.handle(&format!("broker_password={}", "x".repeat(65))), Err("Broker password too long"));
+
+		assert_eq!(settings.handle("broker_user= a "), Ok(Reply::Changed));
+		assert_eq!(settings.mqtt_user, " a ");
+		assert_eq!(settings.handle("broker_user="), Ok(Reply::Changed));
+		assert_eq!(settings.mqtt_login(), None);
+	}
+
+	#[test]
 	fn show_settings()
 	{
 		let mut settings = Settings::default();
 
-		assert_eq!(settings.handle("wifi_ssid"), Ok(Reply::Shown("wifi_ssid=".try_into().unwrap())));
+		assert_eq!(settings.handle("broker"), Ok(Reply::Shown("broker=".try_into().unwrap())));
 		assert_eq!(settings.handle("wifi_password"), Ok(Reply::Shown("wifi_password=".try_into().unwrap())));
 
+		settings.handle("broker=192.168.1.10").unwrap();
 		settings.handle("wifi_ssid= My Network").unwrap();
 		settings.handle("wifi_password=secret123").unwrap();
 
+		assert_eq!(settings.handle(" broker "), Ok(Reply::Shown("broker=192.168.1.10".try_into().unwrap())));
 		assert_eq!(settings.handle("wifi_ssid"), Ok(Reply::Shown("wifi_ssid= My Network".try_into().unwrap())));
 		assert_eq!(settings.handle("wifi_password"), Ok(Reply::Shown("wifi_password=secret123".try_into().unwrap())));
 		assert_eq!(settings.handle("192.168.1.10"), Err("Unknown setting"));
@@ -148,7 +211,10 @@ mod tests
 		assert_shown_settings_can_be_entered_again(&mut settings);
 
 		settings.handle(&format!("wifi_ssid={}", "s".repeat(32))).unwrap();
+		settings.handle(&format!("broker={}", "b".repeat(64))).unwrap();
+		settings.handle(&format!("broker_user={}", "u".repeat(32))).unwrap();
 		settings.handle(&format!("wifi_password={}", "p".repeat(64))).unwrap();
+		settings.handle(&format!("broker_password={}", "p".repeat(64))).unwrap();
 
 		assert_shown_settings_can_be_entered_again(&mut settings);
 	}
@@ -210,6 +276,9 @@ mod tests
 		{
 			wifi_ssid: "s".repeat(32).as_str().try_into().unwrap(),
 			wifi_password: "p".repeat(64).as_str().try_into().unwrap(),
+			mqtt_broker: "b".repeat(64).as_str().try_into().unwrap(),
+			mqtt_user: "u".repeat(32).as_str().try_into().unwrap(),
+			mqtt_password: "p".repeat(64).as_str().try_into().unwrap(),
 		};
 
 		assert_eq!(from_stored::<Settings>(&to_stored(&settings).unwrap()), Ok(settings));

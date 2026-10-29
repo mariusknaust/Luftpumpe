@@ -1,6 +1,6 @@
 # Agent guidelines
 
-Luftpumpe reads the registers of an air-to-water heat pump (Schönknecht & Busch SB-WP-32-8, a rebadged Power World PW030-DKZLRS-A with the main board CC1010B) via the free RS485 port of its main board (Modbus RTU). See README.md for the behavior and wiring.
+Luftpumpe reads the registers of an air-to-water heat pump (Schönknecht & Busch SB-WP-32-8, a rebadged Power World PW030-DKZLRS-A with the main board CC1010B) via the free RS485 port of its main board (Modbus RTU) and publishes them via MQTT. See README.md for the behavior and wiring.
 
 ## Priorities
 
@@ -21,14 +21,16 @@ Luftpumpe reads the registers of an air-to-water heat pump (Schönknecht & Busch
 - `core/`: Chip independent logic (`no_std`, host-testable), everything that can be tested on the host belongs here (the protocol and the data, later on the decisions, e.g. which registers may be written):
   - `modbus.rs`: Modbus RTU framing: The read request, collecting and checking the response, the errors and the timing of the bus (checked against the limits of the main board at compile time).
   - `registers.rs`: The register map: The blocks read in every cycle and the published fields (raw values, the scaling of the temperatures is applied by the receiver).
+  - `mqtt.rs`: The published state and the MQTT packets.
   - `settings.rs`: The settings and their parsing.
   - `settings/lines.rs`: The splitting of the serial input into lines.
   - `settings/stored.rs`: The stored format of the settings.
 - `firmware/`: Thin ESP32-C3 binary (esp-hal, esp-rtos, embassy), only peripheral setup, tasks and glue. Has its own `.cargo/config.toml` (target, probe-rs runner) and `partitions.csv` (settings partition).
-  - `src/main.rs`: Peripheral setup and the cycle: Reading the heat pump and the LED.
+  - `src/main.rs`: Peripheral setup and the cycle: Reading the heat pump, the LED and handing the state to the MQTT task.
   - `src/modbus.rs`: The RS485 bus on the UART: Sending the requests (driver enable) and receiving the responses.
   - `src/settings.rs`: USB Serial/JTAG console and storing the settings in the flash.
   - `src/network.rs`: Wi-Fi connection and network stack (esp-radio, embassy-net).
+  - `src/mqtt.rs`: Connection to the MQTT broker and publishing of the state (never blocking the cycle).
 
 ## Workflow
 
