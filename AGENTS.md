@@ -31,6 +31,7 @@ Luftpumpe reads the registers of an air-to-water heat pump (Schönknecht & Busch
   - `src/settings.rs`: USB Serial/JTAG console and storing the settings in the flash.
   - `src/network.rs`: Wi-Fi connection and network stack (esp-radio, embassy-net).
   - `src/mqtt.rs`: Connection to the MQTT broker and publishing of the state (never blocking the cycle).
+- `docs/raspberry-pi-monitoring.md`: Additions to the monitoring setup of the Ladekaskade on a Raspberry Pi.
 
 ## Workflow
 
