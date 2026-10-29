@@ -1,0 +1,13 @@
+[package]
+name = "luftpumpe-core"
+version = "0.1.0"
+authors = ["Marius Knaust <marius.knaust@gmail.com>"]
+edition = "2024"
+
+[dependencies]
+crc = "3"
+defmt = { version = "1.0", optional = true }
+heapless = "0.9"
+
+[features]
+defmt = ["dep:defmt"]

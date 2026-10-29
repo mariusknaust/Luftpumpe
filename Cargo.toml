@@ -1,0 +1,13 @@
+[workspace]
+members = ["core"]
+resolver = "3"
+
+[profile.dev]
+opt-level = "z"
+lto = true
+
+[profile.release]
+codegen-units = 1
+debug = "full"
+opt-level = "z"
+lto = true
